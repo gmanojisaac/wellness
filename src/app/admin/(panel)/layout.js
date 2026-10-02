@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ClipboardList, Leaf, LoaderCircle, LogOut, Menu, X } from 'lucide-react';
-import { AdminAuthError, adminFetch, loginRedirectUrl } from '../../../lib/adminApi';
+import { ClipboardList, Layers, Leaf, LoaderCircle, LogOut, Menu, Settings, X } from 'lucide-react';
+import { AdminAuthError, getCurrentAdmin, loginRedirectUrl, signOut } from '../../../lib/adminApi';
 
 const NAV_ITEMS = [
   { href: '/admin/registrations', label: 'Registrations', icon: ClipboardList },
+  { href: '/admin/groups', label: 'Groups', icon: Layers },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 export default function AdminPanelLayout({ children }) {
@@ -17,8 +19,12 @@ export default function AdminPanelLayout({ children }) {
   const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
-    adminFetch('/me')
-      .then((data) => setAdmin(data.admin))
+    getCurrentAdmin()
+      .then(async (user) => {
+        if (user) return setAdmin({ email: user.email });
+        await signOut();
+        router.replace(loginRedirectUrl());
+      })
       .catch((err) => {
         if (err instanceof AdminAuthError) router.replace(loginRedirectUrl());
         else setError(err.message);
@@ -26,7 +32,7 @@ export default function AdminPanelLayout({ children }) {
   }, [router]);
 
   const handleLogout = async () => {
-    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
+    await signOut().catch(() => {});
     router.replace('/admin/login');
   };
 
@@ -76,8 +82,8 @@ export default function AdminPanelLayout({ children }) {
           </button>
           <div className="adm-topbar-spacer" />
           <span className="adm-user-chip">
-            <span className="adm-avatar">{admin.username.charAt(0).toUpperCase()}</span>
-            {admin.username}
+            <span className="adm-avatar">{admin.email.charAt(0).toUpperCase()}</span>
+            {admin.email}
           </span>
           <button className="adm-btn adm-btn-ghost" onClick={handleLogout}>
             <LogOut size={16} /> Sign out

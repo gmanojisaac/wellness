@@ -1,7 +1,8 @@
 'use client';
 import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Leaf, LoaderCircle, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Leaf, LoaderCircle, Lock, Mail } from 'lucide-react';
+import { getCurrentAdmin, getSupabase, signOut } from '../../../lib/adminApi';
 
 // Only allow redirects back into the admin area
 function safeNext(value) {
@@ -11,7 +12,7 @@ function safeNext(value) {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -22,15 +23,19 @@ function LoginForm() {
     setError('');
     setSubmitting(true);
     try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
+      const { error: signInError } = await getSupabase().auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.error || 'Unable to reach the admin service. Is the Express server running?');
+      if (signInError) {
+        throw new Error(signInError.status === 400 ? 'Invalid email or password.' : signInError.message);
       }
+
+      if (!(await getCurrentAdmin())) {
+        await signOut();
+        throw new Error('This account does not have admin access.');
+      }
+
       router.replace(safeNext(searchParams.get('next')));
     } catch (err) {
       setError(err.message);
@@ -51,16 +56,17 @@ function LoginForm() {
       {error && <div className="adm-alert adm-alert-error" role="alert">{error}</div>}
 
       <label className="adm-field">
-        <span>Username</span>
+        <span>Email</span>
         <div className="adm-input-icon">
-          <User size={16} />
+          <Mail size={16} />
           <input
             className="adm-input"
+            type="email"
             autoComplete="username"
             autoFocus
             required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
       </label>
@@ -88,7 +94,7 @@ function LoginForm() {
         </div>
       </label>
 
-      <button type="submit" className="adm-btn adm-btn-primary adm-btn-block" disabled={submitting || !username || !password}>
+      <button type="submit" className="adm-btn adm-btn-primary adm-btn-block" disabled={submitting || !email || !password}>
         {submitting ? <><LoaderCircle size={16} className="adm-spin" /> Signing in…</> : 'Sign in'}
       </button>
     </form>

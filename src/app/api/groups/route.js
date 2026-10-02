@@ -1,76 +1,46 @@
 import { NextResponse } from 'next/server';
+import { createServiceClient } from '../../../lib/supabase/service';
+import { toGroupDto } from '../../../lib/groups';
+import { PROGRAM_GROUPS, ROOM_CAPACITY } from '../../../lib/programs';
 
-const EXPRESS_API_URL = process.env.EXPRESS_API_URL || 'http://127.0.0.1:5000/api';
+function withAvailability(groups, counts) {
+  return groups.map((grp) => {
+    const capacity = grp.roomCapacity || ROOM_CAPACITY;
+    const count = counts[grp.id] || 0;
+    const occupancy = count % capacity;
+    const cohortNumber = Math.floor(count / capacity) + 1;
+    return {
+      ...grp,
+      totalEnrolled: count,
+      activeCohortCode: `${grp.id.toUpperCase()}-ROOM-${String(cohortNumber).padStart(2, '0')}`,
+      activeCohortOccupancy: occupancy,
+      availableSeats: capacity - occupancy,
+      maxRoomCapacity: capacity,
+      nextSessionDate: 'Upcoming Weekend',
+    };
+  });
+}
 
+// Groups open for registration, with seat availability — aggregate counts only, no personal data.
 export async function GET() {
   try {
-    const res = await fetch(`${EXPRESS_API_URL}/groups`, { cache: 'no-store' });
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch (error) {
-    console.error('[API Proxy] Error fetching groups from Express:', error.message);
-    // Fallback static list if Express server is warming up
+    const supabase = createServiceClient();
+    const [groupsResult, countsResult] = await Promise.all([
+      supabase.from('groups').select('*').eq('status', 'open').order('sort_order').order('created_at'),
+      supabase.rpc('group_registration_counts'),
+    ]);
+    if (groupsResult.error) throw groupsResult.error;
+    if (countsResult.error) throw countsResult.error;
+
+    const counts = Object.fromEntries(countsResult.data.map((r) => [r.group_id, Number(r.total)]));
+    const groups = withAvailability(groupsResult.data.map(toGroupDto), counts);
     return NextResponse.json({
       success: true,
-      isFallback: true,
-      groups: [
-        {
-          id: 'group1',
-          number: 1,
-          name: 'General Adults (18+)',
-          title: 'The Resilience Continuum: Foundational Self-Care',
-          duration: '52 Weeks • 10 Mins / Weekend',
-          cadence: '1 Weekend Lesson per Week',
-          cohortSize: 'Max 6 Adults / Room',
-          badge: '52 Weeks',
-          activeCohortCode: 'GROUP1-ROOM-01',
-          availableSeats: 5,
-          totalEnrolled: 1,
-          focus: 'Emotional regulation, cognitive defusion, and healthy boundaries for lifelong mental wellness.'
-        },
-        {
-          id: 'group2',
-          number: 2,
-          name: 'Parents & Caregivers',
-          title: 'The Regulated Parent: Co-Regulation & Family Climate',
-          duration: '52 Weeks • 10 Mins / Weekend',
-          cadence: '1 Weekend Lesson per Week',
-          cohortSize: 'Max 6 Parents / Room',
-          badge: '52 Weeks',
-          activeCohortCode: 'GROUP2-ROOM-01',
-          availableSeats: 6,
-          totalEnrolled: 0,
-          focus: 'Parental self-regulation, emotion coaching for children, and calm family communication.'
-        },
-        {
-          id: 'group3',
-          number: 3,
-          name: 'University & College Students (18+)',
-          title: 'Academic Stress, Imposter Syndrome & Social Courage',
-          duration: '4 Weeks • 10 Lessons Total',
-          cadence: 'Week 1 Daily + Weeks 2–4 Weekend',
-          cohortSize: 'Max 6 Students / Room',
-          badge: '4 Weeks',
-          activeCohortCode: 'GROUP3-ROOM-01',
-          availableSeats: 6,
-          totalEnrolled: 0,
-          focus: 'Study panic de-escalation, imposter syndrome defusion, and campus life resilience.'
-        },
-        {
-          id: 'group4',
-          number: 4,
-          name: 'Workplace Professionals',
-          title: 'Corporate Burnout Recovery & Work-Life Boundaries',
-          duration: '4 Weeks • 10 Lessons Total',
-          cadence: 'Week 1 Daily + Weeks 2–4 Weekend',
-          cohortSize: 'Max 6 Professionals / Room',
-          badge: '4 Weeks',
-          activeCohortCode: 'GROUP4-ROOM-01',
-          availableSeats: 5,
-          totalEnrolled: 1,
-          focus: 'Corporate burnout recovery, asynchronous Slack/email firewalls, and guilt-free boundaries.'
-        }
-      ]
+      groups,
+      totalRegistrations: groups.reduce((sum, g) => sum + g.totalEnrolled, 0),
     });
+  } catch (error) {
+    console.error('[api/groups] Falling back to static group list:', error.message || error);
+    return NextResponse.json({ success: true, isFallback: true, groups: withAvailability(PROGRAM_GROUPS, {}) });
   }
 }

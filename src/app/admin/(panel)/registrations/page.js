@@ -5,9 +5,18 @@ import {
   ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Inbox,
   LoaderCircle, MessageCircle, RefreshCw, Search, X,
 } from 'lucide-react';
-import { AdminAuthError, adminFetch, loginRedirectUrl } from '../../../../lib/adminApi';
+import { AdminAuthError, adminRpc, loginRedirectUrl } from '../../../../lib/adminApi';
+import { listGroups } from '../../../../lib/adminContent';
+import { TIME_SLOTS } from '../../../../lib/programs';
+import { toRegistrationDto } from '../../../../lib/registrationDto';
+import { downloadCsv, registrationsToCsv } from '../../../../lib/registrationsCsv';
+import { useDebounced } from '../../../../lib/useDebounced';
+import RegistrationDrawer from '../../../../components/admin/RegistrationDrawer';
 
 const PAGE_SIZES = [10, 25, 50, 100];
+const EXPORT_BATCH = 1000;
+const TIME_SLOT_OPTIONS = Object.entries(TIME_SLOTS).map(([id, label]) => ({ id, label }));
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 const EMPTY_FILTERS = { q: '', groupId: '', timeSlot: '', from: '', to: '' };
 
 const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
@@ -18,21 +27,23 @@ function formatDate(iso) {
   return iso ? dateTimeFormat.format(new Date(iso)) : '—';
 }
 
-function useDebounced(value, delay) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+// Maps UI filters to admin_list_registrations() arguments
+function toRpcArgs(query, sort) {
+  return {
+    p_q: query.q || null,
+    p_group_id: query.groupId || null,
+    p_time_slot: query.timeSlot || null,
+    p_from: query.from || null,
+    p_to: query.to || null,
+    p_tz: TIME_ZONE,
+    p_sort: sort.field,
+    p_order: sort.order,
+  };
 }
 
-function toQueryString(params) {
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== '' && v !== null && v !== undefined) qs.set(k, String(v));
-  }
-  return qs.toString();
+async function fetchRegistrations(query, sort, limit, offset) {
+  const data = await adminRpc('admin_list_registrations', { ...toRpcArgs(query, sort), p_limit: limit, p_offset: offset });
+  return { total: Number(data.total), rows: data.rows };
 }
 
 function SortHeader({ label, field, sort, onSort }) {
@@ -47,79 +58,16 @@ function SortHeader({ label, field, sort, onSort }) {
   );
 }
 
-function DetailRow({ label, children }) {
-  return (
-    <div className="adm-detail-row">
-      <dt>{label}</dt>
-      <dd>{children || <span className="adm-muted">—</span>}</dd>
-    </div>
-  );
-}
-
-function RegistrationDrawer({ registration, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  const r = registration;
-  return (
-    <>
-      <div className="adm-backdrop adm-backdrop-drawer" onClick={onClose} />
-      <aside className="adm-drawer" role="dialog" aria-modal="true" aria-labelledby="adm-drawer-title">
-        <header className="adm-drawer-header">
-          <div>
-            <span className="adm-mono adm-muted">{r.registrationNumber}</span>
-            <h2 id="adm-drawer-title">{r.fullName}</h2>
-          </div>
-          <button className="adm-icon-btn" onClick={onClose} aria-label="Close details"><X size={18} /></button>
-        </header>
-        <div className="adm-drawer-body">
-          <section>
-            <h3>Contact</h3>
-            <dl>
-              <DetailRow label="Email"><a href={`mailto:${r.email}`}>{r.email}</a></DetailRow>
-              <DetailRow label="Phone">{r.phone}</DetailRow>
-              <DetailRow label="WhatsApp reminders">{r.whatsAppOptIn ? 'Opted in' : 'Not opted in'}</DetailRow>
-            </dl>
-          </section>
-          <section>
-            <h3>Program</h3>
-            <dl>
-              <DetailRow label="Group">Group {r.groupNumber} · {r.groupName}</DetailRow>
-              <DetailRow label="Track">{r.groupTitle}</DetailRow>
-              <DetailRow label="Time slot">{r.timeSlotLabel}</DetailRow>
-              <DetailRow label="Cohort">{r.cohortCode} · Seat {r.seatNumber} of {r.maxRoomCapacity}</DetailRow>
-              <DetailRow label="Participation">{r.participationStyleLabel}</DetailRow>
-            </dl>
-          </section>
-          <section>
-            <h3>About them</h3>
-            <dl>
-              <DetailRow label="Primary goal">{r.primaryGoal}</DetailRow>
-              <DetailRow label="Notes">{r.notes && <span className="adm-prewrap">{r.notes}</span>}</DetailRow>
-            </dl>
-          </section>
-          <section>
-            <h3>Record</h3>
-            <dl>
-              <DetailRow label="Status"><span className="adm-badge adm-badge-success">{r.status}</span></DetailRow>
-              <DetailRow label="Registered">{formatDate(r.registeredAt)}</DetailRow>
-              <DetailRow label="Age confirmed">18+ confirmed</DetailRow>
-            </dl>
-          </section>
-        </div>
-      </aside>
-    </>
-  );
-}
-
 export default function RegistrationsPage() {
   const router = useRouter();
-  const [meta, setMeta] = useState({ groups: [], timeSlots: [] });
   const [stats, setStats] = useState(null);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [groups, setGroups] = useState([]);
+  const [exporting, setExporting] = useState(false);
+  // The Groups page links here with ?group=<id>
+  const [filters, setFilters] = useState(() => ({
+    ...EMPTY_FILTERS,
+    groupId: typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('group') || '',
+  }));
   const [sort, setSort] = useState({ field: 'registeredAt', order: 'desc' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -145,30 +93,48 @@ export default function RegistrationsPage() {
   }), [debouncedQ, filters.groupId, filters.timeSlot, filters.from, filters.to]);
 
   useEffect(() => {
-    adminFetch('/meta').then(setMeta).catch(handleError);
-  }, [handleError]);
-
-  useEffect(() => {
-    adminFetch('/registrations/stats').then((d) => setStats(d.stats)).catch(handleError);
+    adminRpc('admin_registration_stats').then(setStats).catch(handleError);
+    listGroups().then(setGroups).catch(handleError);
   }, [handleError, reloadKey]);
 
-  const listQs = toQueryString({ ...query, page, pageSize, sort: sort.field, order: sort.order });
-  const requestKey = `${listQs}#${reloadKey}`;
+  const groupsById = useMemo(() => Object.fromEntries(groups.map((g) => [g.id, g])), [groups]);
+
+  const requestKey = JSON.stringify([query, sort, page, pageSize, reloadKey]);
   // Loading until the response for the current request key has settled
   const loading = settledKey !== requestKey;
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch(`/registrations?${listQs}`)
-      .then((data) => {
+    fetchRegistrations(query, sort, pageSize, (page - 1) * pageSize)
+      .then(({ total, rows }) => {
         if (cancelled) return;
-        setResult(data);
+        setResult({
+          registrations: rows,
+          pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+        });
         setError('');
       })
       .catch((err) => !cancelled && handleError(err))
       .finally(() => !cancelled && setSettledKey(requestKey));
     return () => { cancelled = true; };
-  }, [listQs, requestKey, handleError]);
+  }, [query, sort, page, pageSize, requestKey, handleError]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const all = [];
+      for (let offset = 0; ; offset += EXPORT_BATCH) {
+        const { total, rows } = await fetchRegistrations(query, { field: 'registeredAt', order: 'desc' }, EXPORT_BATCH, offset);
+        all.push(...rows);
+        if (rows.length < EXPORT_BATCH || all.length >= total) break;
+      }
+      downloadCsv(registrationsToCsv(all.map((r) => toRegistrationDto(r, groupsById[r.group_id]))), `registrations-${new Date().toISOString().slice(0, 10)}.csv`);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const updateFilter = (key, value) => {
     setFilters((f) => ({ ...f, [key]: value }));
@@ -183,9 +149,11 @@ export default function RegistrationsPage() {
   };
 
   const hasFilters = Object.values(filters).some(Boolean);
-  const exportHref = `/api/admin/registrations/export?${toQueryString(query)}`;
   const pagination = result?.pagination;
-  const rows = result?.registrations || [];
+  const rows = useMemo(
+    () => (result?.registrations || []).map((r) => toRegistrationDto(r, groupsById[r.group_id])),
+    [result, groupsById]
+  );
   const firstRow = pagination ? (pagination.page - 1) * pagination.pageSize + 1 : 0;
   const lastRow = pagination ? firstRow + rows.length - 1 : 0;
 
@@ -200,9 +168,9 @@ export default function RegistrationsPage() {
           <button className="adm-btn adm-btn-ghost" onClick={() => setReloadKey((k) => k + 1)} disabled={loading}>
             <RefreshCw size={15} className={loading ? 'adm-spin' : ''} /> Refresh
           </button>
-          <a className="adm-btn adm-btn-primary" href={exportHref} download>
-            <Download size={15} /> Export CSV
-          </a>
+          <button className="adm-btn adm-btn-primary" onClick={handleExport} disabled={exporting}>
+            {exporting ? <LoaderCircle size={15} className="adm-spin" /> : <Download size={15} />} Export CSV
+          </button>
         </div>
       </div>
 
@@ -223,7 +191,7 @@ export default function RegistrationsPage() {
           <div className="adm-stat adm-stat-groups">
             <span>By group</span>
             <ul>
-              {stats.byGroup.map((g) => (
+              {groups.map((g) => ({ groupId: g.id, name: g.name, count: Number(stats.byGroup[g.id] || 0) })).map((g) => (
                 <li key={g.groupId}>
                   <button
                     className={filters.groupId === g.groupId ? 'is-active' : ''}
@@ -254,11 +222,11 @@ export default function RegistrationsPage() {
           </div>
           <select className="adm-input" value={filters.groupId} onChange={(e) => updateFilter('groupId', e.target.value)} aria-label="Group">
             <option value="">All groups</option>
-            {meta.groups.map((g) => <option key={g.id} value={g.id}>Group {g.number} · {g.name}</option>)}
+            {groups.map((g) => <option key={g.id} value={g.id}>Group {g.number} · {g.name}</option>)}
           </select>
           <select className="adm-input" value={filters.timeSlot} onChange={(e) => updateFilter('timeSlot', e.target.value)} aria-label="Time slot">
             <option value="">All time slots</option>
-            {meta.timeSlots.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {TIME_SLOT_OPTIONS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
           <label className="adm-date">
             <span>From</span>

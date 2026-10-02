@@ -1,0 +1,541 @@
+/* ==========================================================================
+   EVERYDAY — cinematic landing page and program overview pages.
+   Scoped under .everyday so it never leaks into the sage-themed pages.
+   ========================================================================== */
+
+body:has(.everyday) { background: #071426; }
+
+.everyday {
+  color-scheme: dark;
+  --bg: #071426;
+  --panel: #0e2038;
+  --ink: #f2f6ff;
+  --muted: #b5c5da;
+  --teal: #54dfd7;
+  --amber: #ffc272;
+  --violet: #bc9dff;
+  --blue: #70c6ff;
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  background: radial-gradient(ellipse at 80% 0%, #15334f 0, transparent 42%), var(--bg);
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+/* Undo the site-wide element rules from globals.css inside this scope */
+.everyday :is(h1, h2, h3, p, li, span) { word-spacing: normal; }
+.everyday :is(h1, h2, h3) { font-family: inherit; letter-spacing: normal; }
+.everyday section { position: static; padding: 0; z-index: auto; }
+
+.everyday a { color: inherit; text-decoration: none; }
+/* :where keeps this below the size/weight utility classes used on the register page */
+:where(.everyday) button { font: inherit; cursor: pointer; }
+.everyday [hidden] { display: none !important; }
+.everyday button, .everyday a { -webkit-tap-highlight-color: transparent; }
+.everyday button:focus-visible, .everyday a:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 5px;
+}
+
+.everyday .header, .everyday main, .everyday footer { width: min(1280px, calc(100% - 64px)); margin: auto; }
+.everyday .header { height: 98px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.everyday .header-actions { display: flex; align-items: center; gap: 22px; }
+.everyday .brand { display: flex; align-items: center; gap: 13px; }
+.everyday .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, #7ae5df, #2f9db9);
+  border-radius: 14px;
+  color: #082338;
+  font-size: 26px;
+  font-weight: 750;
+  box-shadow: 0 0 25px #40cfc51c;
+}
+.everyday .brand strong { display: block; font-size: 23px; letter-spacing: -.6px; line-height: 1.2; }
+.everyday .brand small { font-size: 13px; color: var(--muted); }
+.everyday .nav-link { font-size: 15px; border-bottom: 1px solid #ffffff45; border-radius: 0; padding: 4px 0; }
+
+.everyday .register-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 20px;
+  border: 1px solid #ffffff40;
+  border-radius: 30px;
+  background: var(--teal);
+  color: #071426;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px #0005;
+  transition: background .2s, box-shadow .2s;
+}
+.everyday .register-button:hover { background: #7ae5df; box-shadow: 0 6px 24px #54dfd740; }
+
+/* Landing: transparent header floating over the video, Register button only */
+.everyday .landing-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 6;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 16px;
+  background: transparent;
+  pointer-events: none;
+}
+.everyday .landing-header .register-button, .everyday .landing-login { pointer-events: auto; }
+.everyday .landing-login { margin-right: 14px; padding: 6px 12px; border-radius: 30px; background: #07142680; color: var(--ink); font-size: 13px; font-weight: 600; backdrop-filter: blur(6px); }
+.everyday .landing-login:hover { background: #071426bb; }
+
+.everyday.landing main { width: min(1180px, calc(100% - 48px)); padding-bottom: 16px; }
+.everyday .media-stage {
+  border: 1px solid #73c6ea50;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #08172b;
+  box-shadow: 0 18px 80px #0007, 0 0 35px #54dfd70a;
+}
+.everyday .hero { border-bottom: 1px solid #73c6ea35; }
+.everyday .hero-frame { position: relative; background: #050e1d; }
+.everyday .hero video {
+  display: block;
+  width: 100%;
+  max-height: clamp(280px, calc(100svh - 360px), 620px);
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+}
+.everyday .hero-unmute {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: white;
+}
+.everyday .hero-unmute-icon {
+  display: grid;
+  place-items: center;
+  width: clamp(64px, 8vw, 96px);
+  aspect-ratio: 1;
+  border: 2px solid #e5faff;
+  border-radius: 50%;
+  background: #082a5266;
+  box-shadow: 0 0 0 6px #8edfff14, 0 0 28px #70c6ff80;
+  backdrop-filter: blur(6px);
+}
+.everyday .hero-unmute-icon svg { width: 42%; height: 42%; }
+.everyday .hero-unmute svg, .everyday .hero-control svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.everyday .hero-unmute-label { padding: 3px 12px; border-radius: 20px; background: #071426d9; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.everyday .hero-controls { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
+/* Sit below the floating landing header so the controls never collide with Register */
+.everyday.landing .hero-controls { top: 62px; }
+.everyday .hero-control { display: grid; place-items: center; width: 44px; height: 44px; padding: 10px; border: 1px solid #ffffff66; border-radius: 50%; color: white; background: #071426bb; }
+.everyday .hero-control svg { width: 22px; height: 22px; }
+.everyday .hero-control:hover, .everyday .hero-unmute:hover .hero-unmute-icon { background: #154b73cc; }
+.everyday [data-playing=true] .play-icon, .everyday [data-playing=false] .pause-icon,
+.everyday [data-muted=true] .sound-icon, .everyday [data-muted=false] .muted-icon { display: none; }
+
+/* Shown over the last frame once the video ends */
+.everyday .register-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 62px 20px 20px;
+  background: #071426b8;
+  backdrop-filter: blur(10px);
+  text-align: center;
+  animation: everyday-overlay-in .5s ease both;
+}
+.everyday .register-overlay-content { display: grid; justify-items: center; gap: 10px; max-width: 520px; }
+.everyday .register-overlay p { color: #e1e9f5; font-size: 15px; }
+.everyday .register-overlay-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
+.everyday .register-overlay .register-button { min-height: 46px; padding: 10px 28px; font-size: 15px; }
+.everyday .replay-button {
+  min-height: 46px;
+  padding: 10px 22px;
+  border: 1px solid #ffffff55;
+  border-radius: 30px;
+  background: #071426bb;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.everyday .replay-button:hover { background: #154b73cc; }
+@keyframes everyday-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.everyday .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1.8px; color: var(--teal); display: block; }
+.everyday h1 { font-size: clamp(26px, 3vw, 39px); line-height: 1.2; letter-spacing: -1.1px; }
+.everyday h2 { font-size: clamp(25px, 2.6vw, 34px); line-height: 1.25; letter-spacing: -.8px; }
+.everyday h3 { line-height: 1.3; }
+.everyday .programs { padding: 8px; scroll-margin-top: 12px; transition: opacity .5s ease, transform .5s ease; }
+.everyday .tiles-hidden .programs { opacity: 0; transform: translateY(18px); pointer-events: none; }
+.everyday .listen-button {
+  border: 1px solid #61c7d454;
+  border-radius: 30px;
+  background: #142b41;
+  color: var(--ink);
+  padding: 9px 16px;
+  font-size: 13px;
+  min-height: 44px;
+}
+.everyday .card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 8px; }
+.everyday .card-grid .amber { order: 1; }
+.everyday .card-grid .teal { order: 3; }
+.everyday .card-grid .violet { order: 2; }
+.everyday .card-grid .blue { order: 4; }
+.everyday .teal { --accent: var(--teal); }
+.everyday .amber { --accent: var(--amber); }
+.everyday .violet { --accent: var(--violet); }
+.everyday .blue { --accent: var(--blue); }
+.everyday .program-card {
+  position: relative;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.everyday .program-card:hover, .everyday .program-card:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 8px 28px #0004;
+}
+.everyday .program-card.is-playing { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.everyday .card-link { display: flex; flex-direction: column; height: 100%; border-radius: inherit; }
+.everyday .card-link:focus-visible { outline-color: var(--accent); outline-offset: -3px; }
+.everyday .card-image { position: absolute; inset: 0; }
+.everyday .card-image img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; display: block; }
+.everyday .duration {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  padding: 3px 10px;
+  border: 1px solid #ffffff35;
+  background: #071426e8;
+  border-radius: 25px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.everyday .card-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  flex: 1;
+  min-height: 214px;
+  padding: 96px 14px 14px;
+  background: linear-gradient(180deg, transparent 12%, #07142618 30%, #071426ed 65%, #071426 100%);
+}
+.everyday .card-copy h3 { color: var(--accent); font-size: clamp(17px, 1.5vw, 20px); margin-bottom: 5px; letter-spacing: -.3px; }
+.everyday .card-copy p { font-size: 13px; color: #e1e9f5; line-height: 1.45; }
+.everyday .speaker {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #ffffff40;
+  border-radius: 50%;
+  background: #071426d9;
+  color: var(--accent);
+  z-index: 1;
+}
+.everyday .speaker svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.everyday .speaker-muted { display: block; }
+.everyday .speaker-waves { display: none; }
+.everyday .speaker[aria-pressed=true] .speaker-muted { display: none; }
+.everyday .speaker[aria-pressed=true] .speaker-waves { display: block; }
+.everyday .speaker:focus-visible { outline-color: var(--accent); outline-offset: 3px; }
+.everyday .speaker[aria-pressed=true] { background: var(--accent); color: #071426; }
+.everyday footer { border-top: 1px solid #ffffff16; padding: 24px 0 30px; display: flex; justify-content: space-between; gap: 30px; color: var(--muted); font-size: 12px; }
+.everyday footer p { max-width: 440px; }
+.everyday .sr-only { position: absolute; clip: rect(0, 0, 0, 0); width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; white-space: nowrap; }
+.everyday .skip { position: fixed; top: 8px; left: 8px; transform: translateY(-150%); background: var(--teal); color: var(--bg); padding: 10px; z-index: 20; }
+.everyday .skip:focus { transform: none; }
+
+/* Program overview pages */
+.everyday .detail { padding-top: 18px; }
+.everyday .back-link { font-size: 14px; color: var(--muted); border-bottom: 1px solid #ffffff35; }
+.everyday .detail-hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 65px; padding: 45px 0; }
+.everyday .detail-hero img { width: 100%; height: auto; border-radius: 22px; border: 1px solid #ffffff25; }
+.everyday .detail .eyebrow { color: var(--accent); }
+.everyday .detail h1 { font-size: clamp(40px, 5vw, 65px); margin: 18px 0; }
+.everyday .detail-intro { font-size: 20px; color: var(--muted); max-width: 480px; }
+.everyday .detail .listen-button { margin-top: 28px; border-color: var(--accent); }
+.everyday .listen-button[aria-pressed=true] { background: var(--accent); color: var(--bg); }
+.everyday .detail-info { display: grid; grid-template-columns: 1fr 1fr; gap: 65px; padding: 40px 0 50px; border-top: 1px solid #ffffff20; }
+.everyday .detail-info h2 { margin: 12px 0 18px; font-size: 28px; }
+.everyday .detail-info p { color: var(--muted); margin-bottom: 15px; }
+.everyday .detail-info ul { margin: 16px 0; padding-left: 22px; color: var(--muted); }
+.everyday .detail-info li { padding: 6px 0; }
+.everyday .detail-info li::marker { color: var(--accent); }
+.everyday .other-programs { padding: 30px 0 50px; border-top: 1px solid #ffffff20; }
+.everyday .other-programs h2 { font-size: 23px; margin-bottom: 20px; }
+.everyday .other-programs > div { display: flex; gap: 12px; flex-wrap: wrap; }
+.everyday .other-programs a { padding: 9px 19px; border: 1px solid #ffffff25; border-radius: 25px; font-size: 15px; }
+.everyday .other-programs a:hover { border-color: var(--accent); }
+
+@media (min-width: 1021px) {
+  .everyday.landing { overflow: hidden; }
+  .everyday.landing main { width: 100%; }
+  .everyday.landing .media-stage {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .everyday.landing .hero { border: 0; }
+  .everyday.landing .hero-frame { height: calc(100vw * 0.478125); overflow: hidden; background: transparent; }
+  .everyday.landing .hero video { height: 100%; max-height: none; object-fit: cover; }
+  .everyday.landing .programs {
+    position: relative;
+    z-index: 2;
+    width: 90%;
+    margin-top: -242px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .everyday.landing .card-copy { min-height: 174px; }
+  /* Keep the overlay copy clear of the tiles that overlap the video */
+  .everyday.landing .register-overlay { padding-bottom: 250px; }
+}
+@media (max-width: 1020px) {
+  .everyday .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .everyday .hero video { max-height: none; }
+  .everyday .card-copy { min-height: 240px; }
+  .everyday .card-copy h3 { font-size: 21px; }
+  .everyday .detail-hero { gap: 30px; }
+}
+@media (min-width: 601px) and (max-width: 1020px) {
+  /* The video is a framed panel at this width, so the header sits above it instead of over it */
+  .everyday .landing-header { position: static; width: min(1180px, calc(100% - 48px)); margin: auto; padding: 0; }
+  .everyday.landing .hero-controls { top: 12px; }
+  .everyday.landing .register-overlay { padding-top: 20px; }
+}
+@media (max-width: 600px) {
+  .everyday .header, .everyday main, .everyday footer { width: calc(100% - 32px); }
+  .everyday .header { height: 85px; }
+  .everyday .header-actions { gap: 12px; }
+  .everyday .brand strong { font-size: 20px; }
+  .everyday .brand small { font-size: 11px; max-width: 190px; display: block; }
+  .everyday .brand-mark { width: 35px; height: 35px; font-size: 22px; border-radius: 11px; }
+  .everyday .nav-link { font-size: 13px; white-space: nowrap; }
+  .everyday .header .register-button { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .everyday.landing main { width: 100%; padding-bottom: 0; }
+  .everyday .landing-header { padding: 0 10px; }
+  .everyday.landing .media-stage { position: relative; border: 0; border-radius: 0; }
+  .everyday.landing .hero-frame { height: 100vh; height: 100svh; }
+  .everyday.landing .hero video { width: 100%; height: 100%; max-height: none; aspect-ratio: auto; object-fit: cover; }
+  .everyday.landing .programs { position: absolute; right: 0; bottom: 0; left: 0; z-index: 3; width: auto; margin: 0; padding: 8px 10px 10px; background: linear-gradient(180deg, transparent, #071426e8 24%, #071426 100%); }
+  .everyday.landing .card-grid { display: flex; gap: 8px; padding-right: max(0px, calc(100% - min(78vw, 310px))); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .everyday.landing .card-grid::-webkit-scrollbar { display: none; }
+  .everyday.landing .program-card { flex: 0 0 min(78vw, 310px); min-height: 200px; scroll-snap-align: start; }
+  .everyday.landing .card-copy { min-height: 200px; padding: 76px 14px 12px; }
+  .everyday.landing .hero-controls { top: 58px; right: 8px; gap: 6px; }
+  .everyday.landing .register-overlay { padding-bottom: 230px; }
+  .everyday .hero-unmute { gap: 6px; }
+  .everyday .hero-unmute-label { font-size: 11px; }
+  .everyday .programs { padding: 6px; }
+  .everyday .card-grid { grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 6px; }
+  .everyday .card-copy { min-height: 240px; padding: 108px 16px 16px; }
+  .everyday .card-copy h3 { font-size: 22px; }
+  .everyday .card-copy p { font-size: 14px; }
+  .everyday .eyebrow { font-size: 11px; letter-spacing: 1.3px; }
+  .everyday .detail-hero, .everyday .detail-info { grid-template-columns: 1fr; gap: 25px; }
+  .everyday footer { display: block; }
+  .everyday footer p { margin-top: 10px; }
+  .everyday .detail-hero { padding: 30px 0; }
+  .everyday .detail h1 { font-size: 45px; }
+  .everyday .detail-intro { font-size: 18px; }
+  .everyday .detail-info { padding: 25px 0; }
+  .everyday .detail-hero img { grid-row: 1; }
+  .everyday .detail-text .eyebrow { font-size: 12px; }
+}
+/* Registration page */
+.everyday.register main { width: 100%; }
+/* .container (1240px) otherwise overrides the max-w-3xl on the form column */
+.everyday.register main > .container { max-width: 768px; }
+.everyday.register h1 { font-size: clamp(28px, 4vw, 40px); }
+.everyday.register h2 { font-size: 18px; letter-spacing: -.2px; }
+.everyday.register h2.text-2xl { font-size: 26px; }
+.everyday.register .underline { text-decoration: underline; }
+/* Track names wrap instead of being cut off on narrow screens */
+.everyday.register h3.truncate { overflow: visible; white-space: normal; }
+.everyday.register .pl-7.flex { flex-wrap: wrap; gap: 4px 12px; }
+.everyday.register .border-2 { border-width: 2px; border-style: solid; }
+.everyday.register .w-4\.5 { width: 18px; }
+.everyday.register .h-4\.5 { height: 18px; }
+
+.everyday.register .reg-ink { color: var(--ink); }
+.everyday.register .reg-muted { color: var(--muted); }
+.everyday.register .reg-teal { color: var(--teal); }
+.everyday.register .reg-amber { color: var(--amber); }
+.everyday.register .reg-blue { color: var(--blue); }
+.everyday.register .reg-violet { color: var(--violet); }
+.everyday.register .reg-danger { color: #ff9d9d; }
+
+.everyday.register .reg-line { border-color: #ffffff25; }
+.everyday.register .reg-line-teal { border-color: var(--teal); }
+.everyday.register .reg-line-amber { border-color: var(--amber); }
+.everyday.register .reg-line-blue { border-color: var(--blue); }
+.everyday.register .reg-line-violet { border-color: var(--violet); }
+.everyday.register .reg-line-danger { border-color: #ff9d9d66; }
+.everyday.register .reg-line.cursor-pointer:hover { border-color: #ffffff55; }
+
+.everyday.register .reg-surface { background: var(--panel); }
+.everyday.register .reg-surface-soft { background: #ffffff0a; }
+.everyday.register .reg-tint-teal { background: color-mix(in srgb, var(--teal) 12%, transparent); }
+.everyday.register .reg-tint-amber { background: color-mix(in srgb, var(--amber) 12%, transparent); }
+.everyday.register .reg-tint-blue { background: color-mix(in srgb, var(--blue) 12%, transparent); }
+.everyday.register .reg-tint-violet { background: color-mix(in srgb, var(--violet) 12%, transparent); }
+.everyday.register .reg-tint-danger { background: #ff9d9d1f; }
+.everyday.register .reg-solid-teal { background: var(--teal); color: var(--bg); }
+.everyday.register .reg-solid-amber { background: var(--amber); color: var(--bg); }
+.everyday.register .reg-solid-blue { background: var(--blue); color: var(--bg); }
+.everyday.register .reg-solid-violet { background: var(--violet); color: var(--bg); }
+.everyday.register .reg-dot { background: #34d399; }
+
+.everyday.register :is(input[type=text], input[type=email], input[type=password], select, textarea) {
+  border: 1px solid #ffffff30;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.everyday.register :is(input[type=text], input[type=email], input[type=password], select, textarea):focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px #54dfd726;
+}
+.everyday.register ::placeholder { color: #7f93ab; }
+.everyday.register input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--teal); }
+.everyday.register .reg-submit {
+  min-height: 54px;
+  padding: 10px 16px;
+  border: 1px solid #ffffff40;
+  background: var(--teal);
+  color: var(--bg);
+  box-shadow: 0 4px 18px #0005;
+  transition: background .2s, box-shadow .2s;
+}
+.everyday.register .reg-submit:hover { background: #7ae5df; box-shadow: 0 6px 24px #54dfd740; }
+.everyday.register .reg-submit:disabled { opacity: .6; cursor: wait; }
+
+/* Spacing and sizing utilities the registration markup uses but wellness-layout.css never defined */
+.everyday .mb-0\.5 { margin-bottom: 2px; }
+.everyday .mb-1\.5 { margin-bottom: 6px; }
+.everyday .mb-2\.5 { margin-bottom: 10px; }
+.everyday .mb-3\.5 { margin-bottom: 14px; }
+.everyday .mt-1\.5 { margin-top: 6px; }
+.everyday .mt-3\.5 { margin-top: 14px; }
+.everyday .mt-7 { margin-top: 28px; }
+.everyday .ml-2 { margin-left: 8px; }
+.everyday .ml-3 { margin-left: 12px; }
+.everyday .pb-3\.5 { padding-bottom: 14px; }
+.everyday .pt-3\.5 { padding-top: 14px; }
+.everyday .pl-0\.5 { padding-left: 2px; }
+.everyday .pl-7 { padding-left: 28px; }
+.everyday .pr-7 { padding-right: 28px; }
+.everyday .py-20 { padding-top: 80px; padding-bottom: 80px; }
+.everyday .left-2\.5 { left: 10px; }
+.everyday .top-\[calc\(100\%\+6px\)\] { top: calc(100% + 6px); }
+.everyday .w-1\.5 { width: 6px; }
+.everyday .h-1\.5 { height: 6px; }
+.everyday .w-7 { width: 28px; }
+.everyday .h-7 { height: 28px; }
+.everyday .w-\[320px\] { width: 320px; }
+.everyday .min-w-0 { min-width: 0; }
+.everyday .max-w-md { max-width: 28rem; }
+.everyday .max-w-lg { max-width: 32rem; }
+.everyday .max-w-\[150px\] { max-width: 150px; }
+.everyday .max-w-\[calc\(100vw-2\.5rem\)\] { max-width: calc(100vw - 2.5rem); }
+.everyday .max-h-\[260px\] { max-height: 260px; }
+.everyday .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.everyday .select-none { user-select: none; }
+.everyday .rounded-l-xl { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+.everyday .opacity-60 { opacity: .6; }
+.everyday .rotate-180 { transform: rotate(180deg); }
+.everyday .transition-transform { transition: transform .2s; }
+.everyday .divide-y > * + * { border-top: 1px solid #ffffff12; }
+.everyday .animate-spin { animation: everyday-spin 1s linear infinite; }
+@keyframes everyday-spin {
+  to { transform: rotate(360deg); }
+}
+@media (min-width: 640px) {
+  .everyday .sm\:p-3 { padding: 12px; }
+  .everyday .sm\:p-4\.5 { padding: 18px; }
+  .everyday .sm\:p-5 { padding: 20px; }
+  .everyday .sm\:px-6 { padding-left: 24px; padding-right: 24px; }
+  .everyday .sm\:py-12 { padding-top: 48px; padding-bottom: 48px; }
+  .everyday .sm\:mb-10 { margin-bottom: 40px; }
+  .everyday .sm\:gap-6 { gap: 24px; }
+  .everyday .sm\:space-y-8 > * + * { margin-top: 32px; }
+  .everyday .sm\:w-5 { width: 20px; }
+  .everyday .sm\:h-5 { height: 20px; }
+  .everyday .sm\:w-8 { width: 32px; }
+  .everyday .sm\:h-8 { height: 32px; }
+  .everyday .sm\:w-10 { width: 40px; }
+  .everyday .sm\:h-10 { height: 40px; }
+  .everyday .sm\:w-11 { width: 44px; }
+  .everyday .sm\:h-11 { height: 44px; }
+  .everyday .sm\:w-20 { width: 80px; }
+  .everyday .sm\:h-20 { height: 80px; }
+  .everyday .sm\:h-\[50px\] { height: 50px; }
+  .everyday .sm\:w-\[350px\] { width: 350px; }
+  .everyday .sm\:rounded-3xl { border-radius: 24px; }
+  .everyday .sm\:col-span-2 { grid-column: span 2 / span 2; }
+  .everyday .sm\:text-\[11px\] { font-size: 11px; }
+  .everyday .sm\:text-sm { font-size: 14px; line-height: 20px; }
+  .everyday .sm\:text-base { font-size: 16px; line-height: 24px; }
+  .everyday .sm\:text-lg { font-size: 18px; line-height: 28px; }
+  .everyday .sm\:text-3xl { font-size: 30px; line-height: 36px; }
+}
+
+/* CountryPhoneInput is shared with the sage-themed pages, so it is restyled from here */
+.everyday .country-phone-input-root button { color: inherit; }
+.everyday .country-phone-input-root > div:first-child { border: 1px solid #ffffff30; background: var(--bg); }
+.everyday .country-phone-input-root > div:first-child:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px #54dfd726; }
+.everyday .country-phone-input-root > div:first-child > button { border-right: 1px solid #ffffff25; background: #ffffff0f; }
+.everyday .country-phone-input-root input[type=tel] { border: 0; background: transparent; color: var(--ink); outline: none; }
+/* The dropdown sets its white background inline */
+.everyday .country-phone-input-root > div:first-child > div.absolute {
+  border: 1px solid #ffffff30;
+  background-color: var(--panel) !important;
+  box-shadow: 0 18px 50px #000a;
+}
+.everyday .country-phone-input-root .overflow-y-auto button:hover { background: #ffffff14; }
+.everyday .country-phone-input-root > p { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) {
+  .everyday * { transition: none !important; animation: none !important; }
+}

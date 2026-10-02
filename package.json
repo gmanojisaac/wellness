@@ -4,16 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "server": "node server/index.js",
-    "server:dev": "node --watch server/index.js",
-    "admin:create": "node server/scripts/create-admin.js",
+    "admin:create": "node scripts/create-admin.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
     "lucide-react": "^1.48.0",
     "next": "16.3.6",
     "react": "19.2.8",
