@@ -7,9 +7,9 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Wellness App • 1-Year Mental Health & Wellness Micro-Learning Program',
-  description: 'Evidence-informed preventative mental wellness for adults 18+ and parents. 5-minute six-tile comics, 4-minute 6-person weekend voice rooms, and 1-minute daily actions.',
-  keywords: 'mental wellness, mental health micro-learning, adult self-care, six-tile comics, emotion coaching, burnout recovery',
+  title: 'Everyday Mental Wellness • Learner Portal',
+  description: 'Sign in to your Everyday Mental Wellness learner portal: enrolment, live classes and progress.',
+  robots: { index: false, follow: false },
   icons: {
     icon: '/images/mascot.png',
   },

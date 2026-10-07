@@ -1,5 +1,174 @@
 # Release Notes
 
+## Everyday Mental Wellness 0.3.0 (unreleased, 2026-10-07)
+
+This release gets the app ready for launch. The first learners (about 100) will enrol free with a promo code instead of paying, and every message to learners will go by email. Razorpay payments and WhatsApp messaging are still in the app and can each be switched on later without code changes.
+
+### Highlights
+
+- **Promo-code enrolment**: an admin switches between enrolling by **promo code** and by **Razorpay payment**, and creates the codes. A valid code enrols the learner for free.
+- **Email only at launch**: the app sends every learner email itself through your SMTP account. This covers activation links, sign-in links and both class reminders. WhatsApp is switched off.
+
+### Promo codes
+
+- **Admin → Promo codes** (`/admin/promo-codes`), a new item in the sidebar:
+  - **How learners enrol**: choose **Promo code** or **Razorpay payment**. It starts on **Promo code**. You confirm before the switch takes effect.
+  - **Create codes**:
+    - Choose the code itself (for example `EMWFIRST100`).
+    - Add an optional note that only admins see.
+    - Make it valid for all groups or for one group.
+    - Set a maximum number of uses (100 by default; leave it empty for unlimited).
+    - Set an optional expiry date. The code works through the end of that day, India time.
+  - **Manage codes**: edit, deactivate or reactivate a code. A code that has been used can't be deleted, only deactivated, so the record of who used it is kept.
+  - **Who used a code**: click the "Used" count to see each learner who used it, with a link to their profile.
+  - The page warns you when promo codes are on but no code is active, because nobody can enrol then.
+- **Learner** (`/student/enroll/[id]`):
+  - While promo codes are on, the enrolment step asks for a promo code instead of showing the pay button. Codes work in any letter case.
+  - A valid code enrols the learner straight away, and they go on to choose their weekly class time.
+  - Clear messages for a wrong, expired or used-up code.
+- **Safeguards**:
+  - The database checks every code: one use per enrolment, use limits, expiry, group, and whether promo codes are switched on.
+  - When two learners try to take the last use of a code at the same moment, only one gets it.
+  - While promo codes are on, the server refuses to start a Razorpay payment, even if someone calls it directly.
+- The dashboard now says **Complete enrolment** and **Enrolment pending** instead of "Complete payment" and "Payment pending", because nobody pays at launch.
+
+### Email only
+
+- **Activation and sign-in links**:
+  - Supabase now only creates the single-use link and sends nothing. The app emails the link through `SMTP_*` in `.env`.
+  - The interest form won't create an account unless SMTP is set up. Until then it answers "not set up yet".
+  - If the activation email fails to send, the learner's registration is kept and they are asked to try again. **Send me a new link** on `/activate` also works.
+- **Class reminders**: both now go by email:
+  - "Your class is today": 4 hours before.
+  - "Your live class starts in 2 minutes": with the join link. Before this release it went by WhatsApp.
+- **Activation page**: while WhatsApp is off, there's no WhatsApp code step; the phone number is just saved. Learners can still opt in to WhatsApp reminders "when they start", so you have their consent for later.
+- **Email wording**: all four emails are in `src/lib/emails.js`. Learner names in them are HTML-escaped.
+- **WhatsApp**: stays off until `WHATSAPP_ENABLED=true` and the Meta keys are set. Turning it on brings back the WhatsApp code at activation and sends the 2-minute reminder on WhatsApp. Activation emails and the 4-hour reminder stay on email.
+
+### Database
+
+New migration `20261007120000_promo_codes.sql`. It can be run more than once safely. It needs `20261005120000_enrollment_lifecycle.sql` to be applied first.
+
+- `app_settings`: a single row holding the promo-code switch (`promo_checkout_enabled`, on by default).
+- `promo_codes`: the codes, with their use count, limit, expiry, optional group and active flag.
+- `promo_redemptions`: who used which code and when (one per enrolment).
+- `student_redeem_promo()`: enrols the signed-in learner's own registration with a code.
+- `promo_checkout_enabled()`: tells the app whether promo codes are on.
+- Only admins can read or change settings, codes and redemptions. Learners can only redeem a code for their own enrolment.
+
+### Upgrading
+
+1. In the Supabase SQL editor, run `20261005120000_enrollment_lifecycle.sql` (if it isn't applied yet), then `20261007120000_promo_codes.sql`.
+2. Fill in `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM` in the deployment environment, and set `WHATSAPP_ENABLED=false`. For Gmail or Google Workspace, use `smtp.gmail.com` on port 465 with an App Password.
+3. You no longer need to set up SMTP or email templates in the Supabase dashboard. The files in `supabase/templates/` are kept for reference only.
+4. In **Admin → Promo codes**, create the launch code (for example `EMWFIRST100`, 100 uses) and include it in the invitation email you send.
+5. **Later, to start taking payments**: add the Razorpay keys and switch **How learners enrol** to **Razorpay payment**. **Later, to start WhatsApp**: add the Meta keys and approved templates, then set `WHATSAPP_ENABLED=true`.
+
+### Known limitations
+
+- No real email has been sent yet, because the SMTP keys aren't set. The promo-code database rules were tested in an in-memory Postgres; the admin and enrolment screens haven't been tried against a live Supabase project.
+- The promo code isn't added to the activation email automatically. Include it in the invitation you send.
+- A code makes enrolment completely free. Partial discounts aren't supported.
+- The admin registrations list doesn't show which promo code a learner used yet. That is shown on the Promo codes page instead.
+
+## Everyday Mental Wellness 0.2.0 (unreleased, 2026-10-05)
+
+This release lines the app up with the Learner Experience Spec v1.0. It changes how learners join, from a single registration form to the spec's journey: interest form, activation email, payment, class time, cohort, and live classes with reminders. It adds the Razorpay, email (SMTP), WhatsApp, LiveKit and cron-job.org integrations, and narrows the app to the learner portal and admin panel. The public website is now a separate project.
+
+### Highlights
+
+- **New learner journey**: interest form → activation email → set password, confirm WhatsApp, accept terms → payment → choose a weekly class time → cohort assigned → live classes.
+- **Integrations** for Razorpay payments, email, the WhatsApp Cloud API, LiveKit live video and cron-job.org scheduled jobs. Each one stays switched off until its keys are added to `.env.local`. Until then, its endpoints answer "not set up yet" and the rest of the app keeps working.
+- **Portal only**: the landing page, program and course pages, and the old demo pages are gone. The app opens on the sign-in page.
+
+### Learner journey
+
+- **Interest form** (`/register`): name, email, WhatsApp number and program. No password and no payment. It sends a single-use activation link through Supabase Auth. People who already have an account get a sign-in link instead, and the page gives the same answer either way, so it never reveals who has an account.
+- **Activation** (`/activate`):
+  - The emailed link signs the learner in through `/auth/confirm`.
+  - They create their own password, confirm their mobile number with a 6-digit WhatsApp code, choose whether to get WhatsApp reminders, and accept the terms and privacy notice. The terms version and the time of consent are saved.
+  - If the link has expired, the page lets them request a new one.
+- **Payment** (`/student/enroll/[id]`):
+  - Razorpay checkout for the program fee.
+  - Payments are confirmed by the checkout signature and again by the signed Razorpay webhook. A paid payment is never turned back to failed.
+  - If a payment fails, the account and program stay saved and the learner sees **Retry payment**.
+  - Programs with no fee skip this step.
+- **Class time**: the learner picks a weekly time and sees how many seats are left. Confirming it assigns a cohort (for example `GROUP1-SUN-1800-C01`) and a seat, then shows "You're in."
+- **Dashboard** (`/student`):
+  - The next live class, labelled Upcoming, Join available or Live now.
+  - Each program's next step: activate, pay or choose a class time.
+  - Course content opens only once a cohort is assigned.
+
+### Live classes (LiveKit)
+
+- Each cohort gets one live session per released curriculum week, at the cohort's class time.
+- `/student/live/[sessionId]` gets a LiveKit token from the server.
+  - Tokens go only to members of that session's cohort, from 10 minutes before the start until 20 minutes after the end. The token expires when that window closes, so there are no permanent meeting links.
+  - Admin/facilitator tokens can also end the class; learner tokens can't.
+- The LiveKit webhook records each learner's attendance (when they joined and how long they stayed). Joining a first class moves the learner from cohort-assigned to active.
+- A scheduled job closes rooms whose join window has ended.
+
+### Reminders
+
+- An email 4 hours before each class.
+- A WhatsApp message with the secure join link 2 minutes before each class (only for learners who opted in).
+- Each reminder is recorded before it is sent, so two overlapping cron runs never send it twice.
+
+### Integrations and setup
+
+- All keys have placeholders, with notes on where to find them, in `.env.local` and `.env.example`. `.env.example` is now tracked in git.
+- **Email**: Supabase Auth sends activation and sign-in emails through your own SMTP account. The app sends reminders through the same account. Email templates to paste into Supabase are in `supabase/templates/`.
+- **Razorpay**: keys plus a webhook to `/api/webhooks/razorpay`.
+- **WhatsApp Cloud API**: two message templates that Meta must approve: a verification code and a "class starting" reminder.
+- **LiveKit**: project URL, keys, and a webhook to `/api/webhooks/livekit`.
+- **cron-job.org**: `/api/cron/reminders` every minute and `/api/cron/sessions` every 5 minutes. Both require the header `Authorization: Bearer <CRON_SECRET>`.
+- The README has the full setup table.
+
+### Database
+
+New migration `20261005120000_enrollment_lifecycle.sql`. It can be run more than once safely.
+
+- **Enrolment stage** (`registrations.state`): `invited → activated → payment_pending → enrolled → cohort_assigned → active → program_complete → certified`, plus `withdrawn`, `account_locked` and `certificate_review`. Existing registrations become `active`, or `program_complete` if they were completed.
+- **Class times** move from code into a `time_slots` table. Class time, cohort and seat are now chosen after payment instead of at registration.
+- **Program fees** on groups. The Adult program is set to ₹14,999, as in the spec. The other programs are free until a fee is set.
+- **New tables**:
+  - `payments`
+  - `phone_verifications` (codes are stored hashed)
+  - `class_sessions`
+  - `session_attendance`
+  - `notification_log`
+- `student_course` and `student_video_source` now require an assigned cohort.
+
+### Removed
+
+- The landing page, the program pages (`/programs/*`) and the content pages: `/courses`, `/tracks`, `/how-it-works`, `/comic-method`, `/faq`, `/safety`, `/daily-checkin`.
+- The demo pages that stored data in the browser: `/checkout`, `/classroom`, `/certificate`, `/schedule`, `/notifications`, `/progress`, `/enroll`, `/profile`, `/settings`.
+- The `/api/register` endpoint. The interest form uses `/api/interest`.
+- The components, data files, scripts and media (videos, audio and images) used only by those pages.
+
+### Upgrading
+
+1. Apply `20261005120000_enrollment_lifecycle.sql` **before** deploying this code. The new interest form depends on it.
+2. In Supabase → Authentication:
+   - Set the Site URL to the portal URL and add `<APP_URL>/auth/confirm` to Redirect URLs.
+   - Add your SMTP account.
+   - Paste the two email templates.
+3. Add the integration keys to the deployment environment as each account becomes ready.
+
+### Known limitations
+
+- The real services (Razorpay, the emails, WhatsApp and LiveKit) have not been called yet because no keys are set. The database changes were tested in an in-memory Postgres.
+- Fees, class times and live sessions can only be changed in the database for now. There is no admin screen for them yet.
+- The admin Students lists show learners who haven't paid yet under **Active**.
+- Live sessions are created only for curriculum weeks that have a release date.
+- The live classroom uses LiveKit's standard layout. The calmer custom design from the spec comes later.
+- Not built yet:
+  - Lesson progress rules (lessons are still marked complete by hand)
+  - Feedback after class
+  - Missed-class make-ups
+  - Cohort discussion and messaging
+  - Certificates and the public `/verify` page
+
 ## Everyday Mental Wellness 0.1.0 (2026-10-03)
 
 This is the first release of the Everyday Mental Wellness platform with a production backend. It covers the public website, registration with student accounts, a student portal for weekly classes, and an admin panel for running groups and following each student's progress.

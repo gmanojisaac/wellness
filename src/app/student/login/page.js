@@ -1,12 +1,12 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import '../../everyday.css';
 import '../student.css';
 import EverydayHeader from '../../../components/everyday/EverydayHeader';
 import EverydayFooter from '../../../components/everyday/EverydayFooter';
-import { signIn } from '../../../lib/studentApi';
+import { getCurrentStudent, signIn } from '../../../lib/studentApi';
 
 // Only allow redirects back into the student portal
 function nextPath() {
@@ -20,6 +20,11 @@ export default function StudentLoginPage() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Already signed in: go straight to the portal
+  useEffect(() => {
+    getCurrentStudent().then((user) => { if (user) router.replace(nextPath()); });
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +48,7 @@ export default function StudentLoginPage() {
         <form className="sp-card sp-login" onSubmit={handleSubmit}>
           <span className="eyebrow">STUDENT PORTAL</span>
           <h1>Sign in to your classes</h1>
-          <p className="sp-muted">Use the email and password you chose when you registered.</p>
+          <p className="sp-muted">Use your email and the password you created when you activated your account.</p>
 
           {error && <div className="sp-alert" role="alert">{error}</div>}
 
@@ -61,6 +66,11 @@ export default function StudentLoginPage() {
           </button>
           <p className="sp-muted sp-small">
             Not registered yet? <Link href="/register" className="sp-link">Register for a group</Link>
+          </p>
+          <p className="sp-muted sp-small">
+            Activation link expired? <Link href="/activate" className="sp-link">Get a new one</Link>
+            {' · '}
+            <Link href="/admin/login" className="sp-link">Admin sign in</Link>
           </p>
         </form>
       </main>

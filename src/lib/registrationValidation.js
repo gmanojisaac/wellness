@@ -1,12 +1,12 @@
-import {
-  TIME_SLOTS, PARTICIPATION_STYLES, DEFAULT_TIME_SLOT, DEFAULT_PARTICIPATION_STYLE,
-  DEFAULT_PRIMARY_GOAL,
-} from './programs';
 import { GROUP_ID_RE } from './groups';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?[0-9\s()-]{6,32}$/;
 export const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72;
+
+// Bump when the terms or privacy notice change; stored with each learner's consent.
+export const TERMS_VERSION = '2026-10-05';
 
 function str(value, maxLength) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
@@ -16,8 +16,9 @@ function isTrue(value) {
   return value === true || value === 'true';
 }
 
-// Validates and normalizes the public registration payload.
-export function parseRegistration(body = {}) {
+// Public interest form: no password and no payment. The learner sets a password after
+// opening the activation email.
+export function parseInterest(body = {}) {
   const errors = [];
 
   const fullName = str(body.fullName, 120);
@@ -26,16 +27,10 @@ export function parseRegistration(body = {}) {
   const email = str(body.email, 254).toLowerCase();
   if (!EMAIL_RE.test(email)) errors.push('A valid email address is required.');
 
-  // Becomes the student's portal login. Never trimmed, echoed back or logged.
-  const password = typeof body.password === 'string' ? body.password : '';
-  if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
-    errors.push(`Choose a password of at least ${MIN_PASSWORD_LENGTH} characters for your student login.`);
-  }
-
   const phone = str(body.phone, 32);
-  if (phone && !/^\+?[0-9\s()-]{6,32}$/.test(phone)) errors.push('Phone number contains invalid characters.');
+  if (phone && !PHONE_RE.test(phone)) errors.push('Phone number contains invalid characters.');
 
-  // Only the shape is checked here; register_participant() rejects groups that are not open.
+  // Only the shape is checked here; create_interest() rejects groups that are not open.
   const groupId = typeof body.groupId === 'string' && GROUP_ID_RE.test(body.groupId) ? body.groupId : null;
   if (!groupId) errors.push('Please select a valid learning group.');
 
@@ -48,19 +43,29 @@ export function parseRegistration(body = {}) {
 
   return {
     errors,
-    value: {
-      fullName,
-      email,
-      password,
-      phone,
-      whatsAppOptIn: Boolean(phone) && isTrue(body.whatsAppOptIn),
-      groupId,
-      timeSlot: TIME_SLOTS[body.timeSlot] ? body.timeSlot : DEFAULT_TIME_SLOT,
-      participationStyle: PARTICIPATION_STYLES[body.participationStyle]
-        ? body.participationStyle
-        : DEFAULT_PARTICIPATION_STYLE,
-      primaryGoal: str(body.primaryGoal, 200) || DEFAULT_PRIMARY_GOAL,
-      notes: str(body.notes, 2000),
-    },
+    value: { fullName, email, phone, whatsAppOptIn: Boolean(phone) && isTrue(body.whatsAppOptIn), groupId },
   };
+}
+
+// Account activation: password, phone (with WhatsApp code when WhatsApp is set up), consent.
+export function parseActivation(body = {}) {
+  const errors = [];
+
+  // Never trimmed, echoed back or logged.
+  const password = typeof body.password === 'string' ? body.password : '';
+  if (password.length < MIN_PASSWORD_LENGTH || password.length > MAX_PASSWORD_LENGTH) {
+    errors.push(`Choose a password of ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters.`);
+  }
+
+  const phone = str(body.phone, 32);
+  if (!phone || !PHONE_RE.test(phone)) errors.push('Enter your mobile / WhatsApp number.');
+
+  const code = str(body.code, 12);
+  if (!isTrue(body.acceptTerms)) errors.push('Please accept the program terms and privacy notice.');
+
+  return { errors, value: { password, phone, code, whatsAppOptIn: isTrue(body.whatsAppOptIn) } };
+}
+
+export function isValidEmail(value) {
+  return EMAIL_RE.test(String(value || '').trim().toLowerCase());
 }

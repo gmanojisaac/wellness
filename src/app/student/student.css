@@ -138,6 +138,61 @@
 .everyday.portal .sp-player video { object-fit: contain; }
 .everyday.portal .sp-player-loading, .everyday.portal .sp-external { margin-top: 8px; padding: 14px; border: 1px dashed #ffffff30; border-radius: 12px; font-size: 14px; }
 
+/* Activation, enrolment and live class */
+.everyday.portal .sp-narrow-block { width: min(560px, 100%); margin: 0 auto; }
+.everyday.portal .sp-note {
+  padding: 12px 14px;
+  border: 1px solid #54dfd766;
+  border-radius: 12px;
+  background: #54dfd71a;
+  color: var(--ink);
+  font-size: 14px;
+}
+.everyday.portal .sp-field small { font-weight: 400; font-size: 12px; }
+.everyday.portal .sp-field input[readonly] { opacity: .7; }
+.everyday.portal .sp-inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.everyday.portal .sp-inline input { flex: 1; min-width: 0; }
+.everyday.portal .sp-inline .replay-button { min-height: 48px; white-space: nowrap; }
+.everyday.portal .sp-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.everyday.portal .sp-check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--teal); flex-shrink: 0; }
+.everyday.portal .sp-badge.is-muted { border-color: #ffffff30; background: #ffffff10; color: var(--muted); }
+
+.everyday.portal .sp-next-class { display: grid; gap: 8px; justify-items: start; margin-bottom: 16px; border-color: #54dfd766; }
+.everyday.portal .sp-next-class .sp-card-top { width: 100%; }
+
+.everyday.portal .sp-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; counter-reset: step; }
+.everyday.portal .sp-steps li {
+  counter-increment: step;
+  padding: 4px 12px;
+  border: 1px solid #ffffff25;
+  border-radius: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.everyday.portal .sp-steps li::before { content: counter(step) ". "; }
+.everyday.portal .sp-steps li.is-done { color: var(--teal); border-color: #54dfd766; }
+.everyday.portal .sp-steps li.is-current { color: var(--bg); background: var(--teal); border-color: var(--teal); font-weight: 700; }
+
+.everyday.portal .sp-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.everyday.portal .sp-slot {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid #ffffff25;
+  border-radius: 12px;
+  background: #ffffff0a;
+  cursor: pointer;
+}
+.everyday.portal .sp-slot input { position: absolute; opacity: 0; pointer-events: none; }
+.everyday.portal .sp-slot:focus-within { box-shadow: 0 0 0 3px #54dfd740; }
+.everyday.portal .sp-slot.is-selected { border-color: var(--teal); background: #54dfd71f; }
+.everyday.portal .sp-slot-label { font-weight: 700; }
+
+.everyday.portal .sp-live { display: grid; gap: 12px; }
+.everyday.portal .sp-live-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px; padding-top: 20px; }
+.everyday.portal .sp-live-head h1 { font-size: clamp(22px, 3vw, 30px); margin: 6px 0 0; }
+.everyday.portal .sp-live-room { height: min(72vh, 720px); border: 1px solid #ffffff25; border-radius: 16px; overflow: hidden; }
+
 @media (max-width: 700px) {
   .everyday.portal .sp-user { display: none; }
   .everyday.portal .sp-summary { grid-template-columns: 1fr; gap: 16px; }

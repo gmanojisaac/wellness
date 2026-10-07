@@ -6,8 +6,6 @@ import '../everyday.css';
 import EverydayHeader from '../../components/everyday/EverydayHeader';
 import EverydayFooter from '../../components/everyday/EverydayFooter';
 import CountryPhoneInput from '../../components/CountryPhoneInput';
-import { MIN_PASSWORD_LENGTH } from '../../lib/registrationValidation';
-import { signIn } from '../../lib/studentApi';
 import { 
   Users, CheckCircle2, ShieldCheck, Sparkles, AlertCircle, 
   Clock, Calendar, MessageSquare, Mail, Phone, User, 
@@ -85,23 +83,6 @@ const FALLBACK_GROUPS = [
   }
 ];
 
-const TIME_SLOTS = [
-  { id: 'sat_morning', label: 'Saturday Morning', time: '10:00 AM – 10:10 AM', desc: 'Kick off your weekend with clarity and mindful presence' },
-  { id: 'sat_afternoon', label: 'Saturday Afternoon', time: '3:00 PM – 3:10 PM', desc: 'Mid-afternoon reflection break and boundary reset' },
-  { id: 'sun_morning', label: 'Sunday Morning', time: '10:00 AM – 10:10 AM', desc: 'Calm Sunday habit before household errands or leisure' },
-  { id: 'sun_evening', label: 'Sunday Evening', time: '6:00 PM – 6:10 PM', desc: 'Pre-week cognitive decompression and boundary planning' },
-];
-
-const WELLNESS_GOALS = [
-  'Managing everyday anxiety & nervous system regulation',
-  'Setting healthier boundaries with family or colleagues',
-  'Recovering from chronic mental burnout and exhaustion',
-  'Improving sleep rituals and end-of-day cognitive shutdown',
-  'Parenting communication, co-regulation & calm climate',
-  'Overcoming imposter syndrome and study/work procrastination',
-  'Building a sustainable 10-minute lifelong mental health habit'
-];
-
 function RegistrationFormInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -114,16 +95,9 @@ function RegistrationFormInner() {
   // Form Fields (Sequential line-by-line)
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [signedIn, setSignedIn] = useState(false);
   const [is18OrOver, setIs18OrOver] = useState(true);
   const [phone, setPhone] = useState('');
   const [whatsAppOptIn, setWhatsAppOptIn] = useState(true);
-  const [timeSlot, setTimeSlot] = useState('sat_morning');
-  const [participationStyle, setParticipationStyle] = useState('active_voice');
-  const [primaryGoal, setPrimaryGoal] = useState(WELLNESS_GOALS[0]);
-  const [notes, setNotes] = useState('');
   const [agreedToGuidelines, setAgreedToGuidelines] = useState(true);
 
   // Submission State
@@ -175,16 +149,6 @@ function RegistrationFormInner() {
       return;
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setErrorMessage(`Choose a password of at least ${MIN_PASSWORD_LENGTH} characters for your student login.`);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage('The password and its confirmation do not match.');
-      return;
-    }
-
     if (!is18OrOver) {
       setErrorMessage('Under-18 registration notice: Everyday Mental Wellness is strictly designed for adults aged 18 and older. If you or a minor needs immediate emotional support, please call Tele-MANAS (14416 / 1800-891-4416), Childline (1098), or dial 112 (India). (International: 988).');
       return;
@@ -200,20 +164,15 @@ function RegistrationFormInner() {
     const payload = {
       fullName: fullName.trim(),
       email: email.trim().toLowerCase(),
-      password,
       phone: phone.trim(),
       whatsAppOptIn,
       groupId: selectedGroup,
       is18OrOver,
-      timeSlot,
-      participationStyle,
-      primaryGoal,
-      notes: notes.trim(),
       agreedToGuidelines
     };
 
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/interest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -225,12 +184,7 @@ function RegistrationFormInner() {
         throw new Error(result.error || 'Failed to submit registration. Please try again.');
       }
 
-      // Sign the new student in so the success screen can lead straight into the portal
-      const didSignIn = await signIn(payload.email, password).then(() => true, () => false);
-      setSignedIn(didSignIn);
-      setPassword('');
-      setConfirmPassword('');
-      setRegistrationSuccess(result.registration);
+      setRegistrationSuccess({ fullName: payload.fullName, email: payload.email, groupName: activeGroupData.name });
       window.scrollTo({ top: 80, behavior: 'smooth' });
     } catch (err) {
       console.error('Registration submission error:', err);
@@ -247,42 +201,35 @@ function RegistrationFormInner() {
       <div className="text-center mb-8 sm:mb-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full reg-tint-teal border reg-line reg-ink text-xs font-bold mb-3.5 shadow-xs">
           <Sparkles className="w-3.5 h-3.5 reg-teal" />
-          <span>CONFIDENTIAL ADULT PEER COHORT REGISTRATION</span>
+          <span>ENROLMENT INTEREST · NO CARD NEEDED</span>
         </div>
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black reg-ink tracking-normal mb-3">
           Join Your <span className="reg-teal">Wellness Cohort</span>
         </h1>
         <p className="reg-muted text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-          Reserve your confidential seat in a safe, moderated 6-adult cohort for 10 minutes every weekend. Simple, bite-sized comics and supportive reflection without clinical pressure.
+          Tell us which program you would like to join. We will email you a secure link to activate your learner account. You choose your weekly class time after enrolment.
         </p>
 
         {/* 4-Step Progress Indicator Bar */}
-        <div className="mt-7 max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-left">
+        <div className="mt-7 max-w-2xl mx-auto grid grid-cols-3 gap-2.5 text-left">
           <div className="p-2.5 sm:p-3 rounded-xl reg-surface border reg-line shadow-xs flex items-center gap-2.5">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg reg-solid-teal text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0">1</span>
             <div className="min-w-0">
               <span className="text-[10px] font-bold reg-teal uppercase tracking-wider block">Step 1</span>
-              <span className="text-xs font-bold reg-ink truncate block">Profile</span>
+              <span className="text-xs font-bold reg-ink truncate block">Details</span>
             </div>
           </div>
           <div className="p-2.5 sm:p-3 rounded-xl reg-surface border reg-line shadow-xs flex items-center gap-2.5">
             <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg reg-solid-amber text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0">2</span>
             <div className="min-w-0">
               <span className="text-[10px] font-bold reg-amber uppercase tracking-wider block">Step 2</span>
-              <span className="text-xs font-bold reg-ink truncate block">Track</span>
+              <span className="text-xs font-bold reg-ink truncate block">Program</span>
             </div>
           </div>
           <div className="p-2.5 sm:p-3 rounded-xl reg-surface border reg-line shadow-xs flex items-center gap-2.5">
-            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg reg-solid-blue text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0">3</span>
+            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg reg-solid-violet text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0">3</span>
             <div className="min-w-0">
-              <span className="text-[10px] font-bold reg-blue uppercase tracking-wider block">Step 3</span>
-              <span className="text-xs font-bold reg-ink truncate block">Slot</span>
-            </div>
-          </div>
-          <div className="p-2.5 sm:p-3 rounded-xl reg-surface border reg-line shadow-xs flex items-center gap-2.5">
-            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg reg-solid-violet text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0">4</span>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold reg-violet uppercase tracking-wider block">Step 4</span>
+              <span className="text-[10px] font-bold reg-violet uppercase tracking-wider block">Step 3</span>
               <span className="text-xs font-bold reg-ink truncate block">Confirm</span>
             </div>
           </div>
@@ -302,99 +249,44 @@ function RegistrationFormInner() {
 
       {/* SUCCESS CONFIRMATION STATE */}
       {registrationSuccess ? (
-        <div className="reg-surface border-2 reg-line-teal rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-md text-center animate-fade-in">
+        <div className="reg-surface border-2 reg-line-teal rounded-2xl sm:rounded-3xl p-6 sm:p-10 shadow-md text-center animate-fade-in" role="status">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full reg-tint-teal border-2 reg-line-teal flex items-center justify-center mx-auto mb-4 reg-teal shadow-xs">
-            <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11" />
+            <Mail className="w-9 h-9 sm:w-11 sm:h-11" />
           </div>
 
           <span className="inline-block px-3.5 py-1 rounded-full reg-tint-teal reg-teal text-xs font-bold uppercase tracking-wider mb-2">
-            Registration Confirmed • Live Seat Allocated
+            Interest received
           </span>
 
           <h2 className="text-2xl sm:text-3xl font-black reg-ink mb-2.5">
-            Welcome to the Cohort, {registrationSuccess.fullName}!
+            Thank you, {registrationSuccess.fullName}.
           </h2>
 
-          <p className="reg-muted text-xs sm:text-sm max-w-lg mx-auto mb-6 leading-relaxed">
-            Your confidential seat has been reserved in our moderated adult peer room. You are all set for your upcoming weekend 10-minute micro-learning session.
+          <p className="reg-muted text-sm max-w-lg mx-auto mb-6 leading-relaxed">
+            Check your email to activate your learner account. We sent a secure, single-use link to{' '}
+            <strong className="reg-ink">{registrationSuccess.email}</strong> for <strong className="reg-ink">{registrationSuccess.groupName}</strong>.
+            The link expires after a short time; if it does, you can ask for a new one on the activation page.
           </p>
 
-          {/* Admission Pass Details */}
-          <div className="max-w-lg mx-auto reg-surface-soft border reg-line rounded-2xl p-5 sm:p-6 text-left mb-6 shadow-xs">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b reg-line pb-3.5 mb-3.5">
-              <div>
-                <span className="text-[11px] uppercase font-bold reg-muted tracking-wider block">Registration Reference</span>
-                <span className="font-mono font-bold text-base sm:text-lg reg-teal">{registrationSuccess.registrationNumber}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-[11px] uppercase font-bold reg-muted tracking-wider block">Status</span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold reg-teal reg-tint-teal px-2.5 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full reg-dot animate-pulse" />
-                  Confirmed Seat
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm mb-3.5">
-              <div>
-                <span className="reg-muted block text-xs font-semibold">Selected Learning Track</span>
-                <span className="font-bold reg-ink text-sm sm:text-base block mt-0.5">{registrationSuccess.groupName}</span>
-              </div>
-              <div>
-                <span className="reg-muted block text-xs font-semibold">Assigned Peer Room</span>
-                <span className="font-mono font-bold reg-teal text-sm sm:text-base block mt-0.5">
-                  {registrationSuccess.cohortCode} (Seat {registrationSuccess.seatNumber} of {registrationSuccess.maxRoomCapacity})
-                </span>
-              </div>
-              <div>
-                <span className="reg-muted block text-xs font-semibold">Weekend Time Slot</span>
-                <span className="font-semibold reg-ink block mt-0.5">{registrationSuccess.timeSlotLabel}</span>
-              </div>
-              <div>
-                <span className="reg-muted block text-xs font-semibold">Participation Style</span>
-                <span className="font-semibold reg-ink block mt-0.5">{registrationSuccess.participationStyleLabel}</span>
-              </div>
-              <div className="sm:col-span-2">
-                <span className="reg-muted block text-xs font-semibold">Registered Contact</span>
-                <span className="font-semibold reg-ink block mt-0.5">{registrationSuccess.email}</span>
-              </div>
-              {registrationSuccess.phone && (
-                <div className="sm:col-span-2">
-                  <span className="reg-muted block text-xs font-semibold">WhatsApp Reminder</span>
-                  <span className="font-semibold reg-ink block mt-0.5">
-                    {registrationSuccess.phone} {registrationSuccess.whatsAppOptIn ? '• 1-Minute Alert Enabled' : ''}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-3 border-t reg-line flex items-center gap-2 text-xs reg-muted">
-              <ShieldCheck className="w-4 h-4 reg-teal flex-shrink-0" />
-              <span>Peer Room Privacy: Your contact information is never shared with other participants.</span>
-            </div>
+          <div className="max-w-lg mx-auto reg-surface-soft border reg-line rounded-2xl p-5 text-left mb-6 shadow-xs text-xs sm:text-sm reg-muted space-y-2">
+            <p className="font-bold reg-ink">What happens next</p>
+            <p>1. Open the email and create your own password. We never email you a password.</p>
+            <p>2. Confirm your mobile / WhatsApp number and accept the program terms.</p>
+            <p>3. Complete enrolment, then choose your weekly class time to join a cohort.</p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href={signedIn ? '/student' : '/student/login'}
-              className="register-button gap-2"
-            >
-              <span>{signedIn ? 'Go to my classes' : 'Sign in to my classes'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setRegistrationSuccess(null);
-                setFullName('');
-                setEmail('');
-                setPhone('');
-              }}
-              className="text-xs reg-muted underline px-2 py-1.5 cursor-pointer"
-            >
-              Register another adult learner
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setRegistrationSuccess(null);
+              setFullName('');
+              setEmail('');
+              setPhone('');
+            }}
+            className="text-xs reg-muted underline px-2 py-1.5 cursor-pointer"
+          >
+            Use a different email
+          </button>
         </div>
       ) : (
         /* SPACIOUS, POLISHED SEQUENTIAL REGISTRATION FORM */
@@ -411,7 +303,7 @@ function RegistrationFormInner() {
                   Step 1 • Your Learner Information
                 </h2>
                 <p className="text-xs reg-muted">
-                  Confidential details to setup your personalized peer room credentials.
+                  Your name and contact details. You create your password after opening the activation email.
                 </p>
               </div>
             </div>
@@ -448,45 +340,9 @@ function RegistrationFormInner() {
                   className="w-full h-12 sm:h-[50px] px-4 rounded-xl reg-surface border reg-line reg-ink text-sm sm:text-base transition-all shadow-xs"
                 />
                 <p className="text-[11px] reg-muted mt-1 pl-0.5 leading-normal">
-                  This email is also your student portal login.
+                  We send your activation link here. It also becomes your learner login.
                 </p>
               </div>
-
-              {/* Student login password */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="reg-password" className="flex items-center gap-2 text-xs sm:text-sm font-bold reg-ink mb-1.5">
-                    <span>Create a Password <span className="reg-danger">*</span></span>
-                  </label>
-                  <input
-                    id="reg-password"
-                    type="password"
-                    required
-                    minLength={MIN_PASSWORD_LENGTH}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="w-full h-12 sm:h-[50px] px-4 rounded-xl reg-surface border reg-line reg-ink text-sm sm:text-base transition-all shadow-xs"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="reg-password-confirm" className="flex items-center gap-2 text-xs sm:text-sm font-bold reg-ink mb-1.5">
-                    <span>Confirm Password <span className="reg-danger">*</span></span>
-                  </label>
-                  <input
-                    id="reg-password-confirm"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="w-full h-12 sm:h-[50px] px-4 rounded-xl reg-surface border reg-line reg-ink text-sm sm:text-base transition-all shadow-xs"
-                  />
-                </div>
-              </div>
-              <p className="text-[11px] reg-muted pl-0.5 leading-normal">
-                At least {MIN_PASSWORD_LENGTH} characters. You will use your email and this password to sign in and watch your classes.
-              </p>
 
               {/* Age 18+ Confirmation Card */}
               <div className="p-4 sm:p-4.5 rounded-xl reg-surface-soft border reg-line flex items-start gap-3">
@@ -523,7 +379,7 @@ function RegistrationFormInner() {
                     <label htmlFor="whatsapp-optin-checkbox" className="cursor-pointer select-none block">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs sm:text-sm font-bold reg-ink">
-                          WhatsApp 1-Minute Session Reminders (Optional)
+                          WhatsApp class reminders (optional)
                         </span>
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full reg-tint-teal reg-teal text-[10px] sm:text-[11px] font-semibold border reg-line">
                           <ShieldCheck className="w-3 h-3 reg-teal" />
@@ -531,7 +387,7 @@ function RegistrationFormInner() {
                         </span>
                       </div>
                       <p className="text-xs reg-muted mt-1 leading-relaxed">
-                        Receive a direct 1-tap join link on WhatsApp exactly 1 minute before your scheduled 10-minute weekend room.
+                        Get a secure join link on WhatsApp 2 minutes before each live class. You confirm this number when you activate your account.
                       </p>
                     </label>
 
@@ -650,145 +506,23 @@ function RegistrationFormInner() {
             )}
           </div>
 
-          {/* STEP 3: SCHEDULE & VOICE STYLE (SKY BLUE & TEAL ACCENTS) */}
+          {/* STEP 3: COMMUNITY AGREEMENT (LAVENDER & FOREST ACCENTS) */}
           <div className="reg-surface border reg-line rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xs relative">
             <div className="flex items-center gap-3 mb-5 pb-3.5 border-b reg-line">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl reg-tint-blue reg-blue flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl reg-tint-violet reg-violet flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
                 3
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-bold reg-ink">
-                  Step 3 • Weekend Schedule &amp; Voice Comfort
+                  Step 3 • Community Guidelines
                 </h2>
                 <p className="text-xs reg-muted">
-                  Pick your preferred 10-minute slot and sharing style.
+                  Acknowledge safe educational boundaries. No payment is taken on this page.
                 </p>
               </div>
             </div>
 
             <div className="space-y-5">
-              {/* Weekend Time Slots */}
-              <div>
-                <label className="block text-xs sm:text-sm font-bold reg-ink mb-2.5">
-                  Preferred Weekend 10-Minute Time Slot <span className="reg-danger">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {TIME_SLOTS.map((slot) => {
-                    const isSlotSelected = timeSlot === slot.id;
-                    return (
-                      <div
-                        key={slot.id}
-                        onClick={() => setTimeSlot(slot.id)}
-                        className={`p-4 rounded-xl border-2 text-left cursor-pointer transition-all ${
-                          isSlotSelected
-                            ? 'reg-tint-blue reg-line-blue shadow-xs'
-                            : 'reg-surface reg-line'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-bold text-xs sm:text-sm reg-ink">{slot.label}</span>
-                          <span className="font-mono text-[11px] font-bold reg-blue reg-surface px-2 py-0.5 rounded border reg-line">
-                            {slot.time}
-                          </span>
-                        </div>
-                        <p className="text-xs reg-muted leading-relaxed">{slot.desc}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Participation Style */}
-              <div>
-                <label className="block text-xs sm:text-sm font-bold reg-ink mb-2.5">
-                  Peer Room Participation Comfort Level <span className="reg-danger">*</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div
-                    onClick={() => setParticipationStyle('active_voice')}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      participationStyle === 'active_voice'
-                        ? 'reg-tint-blue reg-line-blue shadow-xs'
-                        : 'reg-surface reg-line'
-                    }`}
-                  >
-                    <div className="font-bold text-xs sm:text-sm reg-ink mb-1 flex items-center gap-2">
-                      <Mic className="w-4 h-4 reg-blue" />
-                      <span>Active Voice Room</span>
-                    </div>
-                    <p className="text-xs reg-muted leading-relaxed">
-                      Happy to share a brief 1-minute comic takeaway in the 4-minute moderated audio room.
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => setParticipationStyle('listener_first')}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      participationStyle === 'listener_first'
-                        ? 'reg-tint-blue reg-line-blue shadow-xs'
-                        : 'reg-surface reg-line'
-                    }`}
-                  >
-                    <div className="font-bold text-xs sm:text-sm reg-ink mb-1 flex items-center gap-2">
-                      <Headphones className="w-4 h-4 reg-blue" />
-                      <span>Listener First Mode</span>
-                    </div>
-                    <p className="text-xs reg-muted leading-relaxed">
-                      Prefer to listen and read along with cohort peers first, speaking only whenever comfortable.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* STEP 4: GOALS & COMMUNITY AGREEMENT (LAVENDER & FOREST ACCENTS) */}
-          <div className="reg-surface border reg-line rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xs relative">
-            <div className="flex items-center gap-3 mb-5 pb-3.5 border-b reg-line">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl reg-tint-violet reg-violet flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
-                4
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-bold reg-ink">
-                  Step 4 • Your Goals &amp; Community Guidelines
-                </h2>
-                <p className="text-xs reg-muted">
-                  Tailor your habit and acknowledge safe educational boundaries.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-5">
-              {/* Primary Goal */}
-              <div>
-                <label className="block text-xs sm:text-sm font-bold reg-ink mb-1.5">
-                  Primary Wellness Focus or Behavioral Goal
-                </label>
-                <select
-                  value={primaryGoal}
-                  onChange={(e) => setPrimaryGoal(e.target.value)}
-                  className="w-full h-12 sm:h-[50px] px-4 rounded-xl reg-surface border reg-line reg-ink text-xs sm:text-sm transition-all shadow-xs"
-                >
-                  {WELLNESS_GOALS.map((goal, idx) => (
-                    <option key={idx} value={goal}>{goal}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Optional Accommodations */}
-              <div>
-                <label className="block text-xs sm:text-sm font-bold reg-ink mb-1.5">
-                  Optional Questions or Accommodations
-                </label>
-                <textarea
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any accessibility needs, scheduling notes, or questions for your cohort moderator..."
-                  className="w-full px-4 py-3 rounded-xl reg-surface border reg-line reg-ink text-xs sm:text-sm transition-all shadow-xs"
-                />
-              </div>
-
               {/* Community & Safety Agreement */}
               <div className="p-4 sm:p-5 rounded-xl reg-surface-soft border reg-line">
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -820,11 +554,11 @@ function RegistrationFormInner() {
                   {submitting ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span>Allocating Your Cohort Seat...</span>
+                      <span>Sending your activation link...</span>
                     </>
                   ) : (
                     <>
-                      <span>Confirm Registration ({activeGroupData.name})</span>
+                      <span>Continue to Enrollment ({activeGroupData.name})</span>
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </>
                   )}
@@ -838,11 +572,11 @@ function RegistrationFormInner() {
                   </span>
                   <span className="flex items-center gap-1.5 font-semibold reg-amber">
                     <Sparkles className="w-3.5 h-3.5 reg-amber" />
-                    Instant Cohort Assignment
+                    Activation link by email
                   </span>
                   <span className="flex items-center gap-1.5 font-semibold reg-blue">
                     <CheckCircle2 className="w-3.5 h-3.5 reg-blue" />
-                    Zero Cost / No Card Required
+                    No card needed now
                   </span>
                 </div>
               </div>

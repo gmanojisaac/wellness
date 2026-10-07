@@ -1,7 +1,7 @@
-import React from 'react';
-import './everyday.css';
-import EverydayLanding from '../components/everyday/EverydayLanding';
+import { redirect } from 'next/navigation';
 
+// This app is the learner and admin portal only; the public website is a separate
+// project that links here. Everyone starts at the sign-in page.
 export default function HomePage() {
-  return <EverydayLanding />;
+  redirect('/student/login');
 }

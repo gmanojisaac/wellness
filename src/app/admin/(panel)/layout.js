@@ -2,12 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ClipboardList, Layers, Leaf, LoaderCircle, LogOut, Menu, Settings, X } from 'lucide-react';
+import { ClipboardList, Layers, Leaf, LoaderCircle, LogOut, Menu, Settings, TicketPercent, X } from 'lucide-react';
 import { AdminAuthError, getCurrentAdmin, loginRedirectUrl, signOut } from '../../../lib/adminApi';
 
 const NAV_ITEMS = [
   { href: '/admin/registrations', label: 'Registrations', icon: ClipboardList },
   { href: '/admin/groups', label: 'Groups', icon: Layers },
+  { href: '/admin/promo-codes', label: 'Promo codes', icon: TicketPercent },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

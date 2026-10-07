@@ -19,6 +19,11 @@ async function studentRpc(fn, args) {
   }
   if (error.code === '42501') throw new Error('This course is not available on your account.');
   if (error.code === 'P0002') throw new Error('This class is not available yet.');
+  if (error.code === 'ES001') throw new Error('Please complete enrolment before choosing a class time.');
+  if (error.code === 'ES002') throw new Error('This enrolment is already complete.');
+  if (error.code === 'EP001') throw new Error('Promo codes are not being accepted right now. Please refresh the page.');
+  if (error.code === 'EP002') throw new Error('That promo code is not valid. Check the code in your email and try again.');
+  if (error.code === 'EP003') throw new Error('That promo code has already been used the maximum number of times.');
   if (/could not find the function/i.test(error.message || '')) {
     throw new Error('The student portal is not available yet. Please try again later.');
   }
@@ -50,10 +55,16 @@ function toEnrolment(row) {
     durationWeeks: row.duration_weeks,
     cadence: row.cadence,
     roomCapacity: row.room_capacity,
-    timeSlotLabel: TIME_SLOTS[row.time_slot] || row.time_slot,
+    timeSlotLabel: row.time_slot_label || TIME_SLOTS[row.time_slot] || row.time_slot,
     cohortCode: row.cohort_code,
     seatNumber: row.seat_number,
     status: row.status,
+    state: row.state,
+    phone: row.phone,
+    whatsAppOptIn: row.whatsapp_opt_in,
+    phoneVerified: row.phone_verified,
+    feePaise: row.fee_paise,
+    currency: row.currency,
     completedAt: row.completed_at,
     totalClasses: Number(row.total_classes),
     completedClasses: Number(row.completed_classes),
@@ -111,6 +122,101 @@ export async function setClassCompleted(registrationId, classId, completed) {
     p_registration_id: registrationId, p_class_id: classId, p_completed: completed,
   });
   return data.status;
+}
+
+// Weekly class times with seats left in the room that is filling now.
+export async function getSlotOptions(registrationId) {
+  const data = await studentRpc('student_slot_options', { p_registration_id: registrationId });
+  return {
+    state: data.state,
+    roomCapacity: data.room_capacity,
+    slots: data.slots.map((s) => ({
+      id: s.id, label: s.label, durationMinutes: s.duration_minutes, seatsRemaining: Number(s.seats_remaining),
+    })),
+  };
+}
+
+// Confirms the class time; the database assigns the cohort and seat.
+export async function chooseSlot(registrationId, timeSlot) {
+  const data = await studentRpc('student_choose_slot', { p_registration_id: registrationId, p_time_slot: timeSlot });
+  return {
+    state: data.state,
+    timeSlotLabel: data.time_slot_label,
+    cohortCode: data.cohort_code,
+    seatNumber: data.seat_number,
+    roomCapacity: data.room_capacity,
+  };
+}
+
+// Whether enrolment is currently by promo code (true) or by payment (false).
+export async function isPromoCheckout() {
+  return Boolean(await studentRpc('promo_checkout_enabled'));
+}
+
+// Enrols with a promo code instead of a payment (-> ENROLLED).
+export async function redeemPromo(registrationId, code) {
+  return studentRpc('student_redeem_promo', { p_registration_id: registrationId, p_code: code.trim() });
+}
+
+function toSession(s) {
+  return {
+    id: s.id,
+    registrationId: s.registration_id,
+    status: s.status,
+    startsAt: s.starts_at,
+    endsAt: s.ends_at,
+    joinOpensAt: s.join_opens_at,
+    joinClosesAt: s.join_closes_at,
+    cohortCode: s.cohort_code,
+    groupName: s.group_name,
+    weekNumber: s.week_number,
+    weekTitle: s.week_title,
+    classes: s.classes || [],
+  };
+}
+
+// The signed-in learner's next live classes, soonest first.
+export async function getUpcomingSessions() {
+  const rows = await studentRpc('student_upcoming_sessions');
+  return rows.map(toSession);
+}
+
+// POSTs to one of this app's route handlers and returns the JSON, or throws its message.
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || 'Something went wrong. Please try again.');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  return data;
+}
+
+export const sendPhoneCode = (phone) => postJson('/api/account/phone-code', { phone });
+
+// Whether activation asks for a WhatsApp code (false while WhatsApp is switched off).
+export async function isPhoneCodeRequired() {
+  const response = await fetch('/api/account/phone-code');
+  const data = await response.json().catch(() => ({}));
+  return data.required === true;
+}
+export const activateAccount = (payload) => postJson('/api/account/activate', payload);
+export const resendActivationLink = (email) => postJson('/api/account/resend-link', { email });
+export const startPayment = (registrationId) => postJson('/api/payments/order', { registrationId });
+export const confirmPayment = (razorpayResponse) => postJson('/api/payments/verify', razorpayResponse);
+export const reportPaymentFailed = (orderId, paymentId, reason) =>
+  postJson('/api/payments/failed', { orderId, paymentId, reason });
+
+// A LiveKit token for a live class: { token, serverUrl, staff, session }.
+export async function getLiveToken(sessionId) {
+  const data = await postJson('/api/live/token', { sessionId });
+  return { ...data, session: toSession(data.session) };
 }
 
 // Resolves a video to something playable: { sourceType: 'upload' | 'link', url }.
